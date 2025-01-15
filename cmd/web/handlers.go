@@ -13,11 +13,12 @@ import (
 
 // Home handler for the root URL ("/")
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
-	// If the path is not "/", return a 404 error
 	if r.URL.Path != "/" {
 		app.notFound(w)
 		return
 	}
+
+	//panic("OOPS! Something went wrong")
 
 	snippets, err := app.snippets.Latest()
 	if err != nil {

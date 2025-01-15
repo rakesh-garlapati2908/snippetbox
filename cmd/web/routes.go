@@ -1,20 +1,25 @@
 package main
 
-import "net/http"
+import (
+	"github.com/justinas/alice"
+	"net/http"
+)
 
-// Function to define application routes
-func (app *application) routes() *http.ServeMux {
-	// Create a new ServeMux (HTTP request multiplexer)
+func (app *application) routes() http.Handler {
 	mux := http.NewServeMux()
 
-	// Set up a file server for static assets like CSS, JS, images
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
-	mux.Handle("/static/", http.StripPrefix("/static/", fileServer)) // Serve static files under "/static/"
+	mux.Handle("/static/", http.StripPrefix("/static/", fileServer))
 
-	// Define routes and the corresponding handler functions
 	mux.HandleFunc("/", app.home)                        // Route for the home page
 	mux.HandleFunc("/snippet/view", app.snippetView)     // Route to view a specific snippet
 	mux.HandleFunc("/snippet/create", app.snippetCreate) // Route to create a new snippet
 
-	return mux // Return the configured multiplexer
+	//create a middleware chain containing our standard middleware
+	//which will be used for every request our application recieves
+	standard := alice.New(app.recoverPanic, app.logRequest, secureHeaders)
+
+	//return app.recoverPanic(app.logRequest(secureHeaders(mux))) // Return the configured multiplexer by wrapping the existing chain
+	// with the logRequest middleware which in turn is wrapped under the recoverPanic middleware
+	return standard.Then(mux)
 }
