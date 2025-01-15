@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"runtime/debug"
+	"time"
 )
 
 // Helper function to handle server errors
@@ -14,18 +16,47 @@ func (app *application) serverError(w http.ResponseWriter, err error) {
 	// Log the error with the stack trace
 	app.errorLog.Output(2, trace)
 
-	// Send an internal server error response
 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
 
 // Helper function to handle client errors (e.g., invalid requests)
 func (app *application) clientError(w http.ResponseWriter, status int) {
-	// Send a client error response (e.g., 400 Bad Request, 404 Not Found)
 	http.Error(w, http.StatusText(status), status)
 }
 
 // Helper function to handle 404 Not Found errors
 func (app *application) notFound(w http.ResponseWriter) {
-	// Use the clientError function to send a 404 response
 	app.clientError(w, http.StatusNotFound)
+}
+
+func (app *application) render(w http.ResponseWriter, status int, page string, data *templateData) {
+
+	ts, ok := app.templateCache[page]
+	if !ok {
+		err := fmt.Errorf("page '%s' not found in template cache", page)
+		app.serverError(w, err)
+		return
+	}
+
+	//initialize a new buffer
+	buf := new(bytes.Buffer)
+
+	//execute the template set and write the response body
+	// earlier instead of http.ResponseWriter here we use buf
+	err := ts.ExecuteTemplate(buf, "base", data)
+	if err != nil {
+		app.serverError(w, err)
+	}
+
+	// write out the provided HTTP status code
+	w.WriteHeader(status)
+
+	//pass the contents of the buffer to the http.ResponseWriter
+	buf.WriteTo(w)
+}
+
+func (app *application) newTemplateData(r *http.Request) *templateData {
+	return &templateData{
+		CurrentYear: time.Now().Year(),
+	}
 }

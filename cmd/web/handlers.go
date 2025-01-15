@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	//"html/template"
+
+	//"html/template"
 	"net/http"
 	"snippetbox.rakesh.net/internal/models"
 	"strconv"
@@ -23,47 +25,23 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, snippet := range snippets {
-		fmt.Fprintf(w, "%+v\n\n", snippet)
-	}
+	data := app.newTemplateData(r)
+	data.Snippets = snippets
 
-	// Files to be used in the home page template rendering
-	//files := []string{
-	//	"./ui/html/base.tmpl",
-	//	"./ui/html/partials/nav.tmpl",
-	//	"./ui/html/pages/home.tmpl",
-	//}
-	//
-	// Parse the templates
-	//ts, err := template.ParseFiles(files...)
-	//if err != nil {
-	//	// If there's an error in parsing, return a server error
-	//	app.serverError(w, err)
-	//	return
-	//}
-	//
-	//// Execute the template with the "base" layout and no data
-	//err = ts.ExecuteTemplate(w, "base", nil)
-	//if err != nil {
-	//	// If there's an error executing the template, return a server error
-	//	app.serverError(w, err)
-	//	return
-	//}
+	//use the new render helper
+	app.render(w, http.StatusOK, "home.tmpl", data)
 }
 
 // Snippet view handler (to view a specific snippet)
 func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
-	// Parse the "id" query parameter to get the snippet ID
 	id, err := strconv.Atoi(r.URL.Query().Get("id"))
 	if err != nil || id < 1 {
-		// If the ID is invalid or less than 1, return a 404 error
 		app.notFound(w)
 		return
 	}
-	//Retrieve the Snippet from the Database
+
 	snippet, err := app.snippets.Get(id)
 	if err != nil {
-		//Checks if the error is models.ErrNoRecord, indicating no snippet with the given ID exists. In this case, a 404 response is sent.
 		if errors.Is(err, models.ErrNoRecord) {
 			app.notFound(w)
 		} else {
@@ -72,7 +50,10 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "%+v", snippet)
+	data := app.newTemplateData(r)
+	data.Snippet = snippet
+
+	app.render(w, http.StatusOK, "view.tmpl", data)
 }
 
 // Snippet create handler (to create a new snippet)
