@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"github.com/go-playground/form/v4"
 	_ "github.com/go-sql-driver/mysql"
 	"html/template"
 	"log"
@@ -17,6 +18,7 @@ type application struct {
 	infoLog       *log.Logger
 	snippets      *models.SnippetModel
 	templateCache map[string]*template.Template
+	formDecoder   *form.Decoder
 }
 
 func main() {
@@ -41,12 +43,16 @@ func main() {
 		errorLog.Fatal(err)
 	}
 
+	//initialize a decoder instance
+	formDecoder := form.NewDecoder()
+
 	// Initialize the application with the loggers
 	app := &application{
 		errorLog:      errorLog,
 		infoLog:       infoLog,
 		snippets:      &models.SnippetModel{DB: db},
 		templateCache: templateCache,
+		formDecoder:   formDecoder,
 	}
 
 	// Create a new HTTP server with specific address, error log, and handler (routes)
