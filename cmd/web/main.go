@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"database/sql"
 	"flag"
 	"github.com/alexedwards/scs/mysqlstore"
@@ -54,6 +55,7 @@ func main() {
 	sessionManager := scs.New()
 	sessionManager.Store = mysqlstore.New(db)
 	sessionManager.Lifetime = 12 * time.Hour
+	sessionManager.Cookie.Secure = true
 
 	// Initialize the application with the loggers
 	app := &application{
@@ -65,18 +67,29 @@ func main() {
 		sessionManager: sessionManager,
 	}
 
+	//tls config of only elliptical curves with assembly implementations are used
+	tlsConfig := &tls.Config{
+		CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
+	}
+
 	// Create a new HTTP server with specific address, error log, and handler (routes)
 	srv := &http.Server{
-		Addr:     *addr,        // The address to listen on (default ":4000")
-		ErrorLog: errorLog,     // Error log for server
-		Handler:  app.routes(), // The HTTP request handler (defined in routes.go)
+		Addr:      *addr,        // The address to listen on (default ":4000")
+		ErrorLog:  errorLog,     // Error log for server
+		Handler:   app.routes(), // The HTTP request handler (defined in routes.go)
+		TLSConfig: tlsConfig,
+		//adding idle,read and write timeouts to the server
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
 	}
 
 	// Log server startup message
 	infoLog.Printf("Starting server on %s", *addr)
 
-	// Start the HTTP server, listen for requests, and log fatal errors
-	err = srv.ListenAndServe()
+	//use the ListenAndServeTLS method to start https server(http + tls[transport layer security]).
+	//we pass in the paths to the TLS certificate and correstpoding private key as the two params
+	err = srv.ListenAndServeTLS("./tls/cert.pem", "./tls/key.pem")
 	errorLog.Fatal(err) // If there's an error starting the server, log it and exit.
 }
 
