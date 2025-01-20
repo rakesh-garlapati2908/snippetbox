@@ -4,6 +4,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/justinas/alice"
 	"net/http"
+	"snippetbox.rakesh.net/ui"
 )
 
 func (app *application) routes() http.Handler {
@@ -13,9 +14,9 @@ func (app *application) routes() http.Handler {
 		app.notFound(w)
 	})
 
-	//static files route
-	fileServer := http.FileServer(http.Dir("./ui/static/"))
-	router.Handler(http.MethodGet, "/static/*filepath", http.StripPrefix("/static/", fileServer))
+	//used embedded filesystem
+	fileServer := http.FileServer(http.FS(ui.Files))
+	router.Handler(http.MethodGet, "/static/*filepath", fileServer)
 
 	//unprotected using dynamic middleware chain, use the noSurf middleware on all our 'dynamic' routes and add authenticate middleware also
 	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf, app.authenticate)
