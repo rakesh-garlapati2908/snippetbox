@@ -17,8 +17,8 @@ func (app *application) routes() http.Handler {
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
 	router.Handler(http.MethodGet, "/static/*filepath", http.StripPrefix("/static/", fileServer))
 
-	//unprotected using dynamic middleware chain, use the noSurf middleware on all our 'dynamic' routes
-	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf)
+	//unprotected using dynamic middleware chain, use the noSurf middleware on all our 'dynamic' routes and add authenticate middleware also
+	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf, app.authenticate)
 	router.Handler(http.MethodGet, "/", dynamic.ThenFunc(app.home))
 	router.Handler(http.MethodGet, "/snippet/view/:id", dynamic.ThenFunc(app.snippetView))
 	router.Handler(http.MethodGet, "/user/signup", dynamic.ThenFunc(app.userSignup))
